@@ -118,13 +118,17 @@ for vm in vms:
                 continue
 
             if name in disk_map:
-                disk_map[name].append((config, value))
+                disk_map[name].append((node, name, vmid, config, value))
             else:
-                disk_map[name] = [(config, value)]
+                disk_map[name] = [(node, name, vmid, config, value)]
 
-for vm, disks in sorted(disk_map.items()):
-    for disk in sorted(disks):
-        print("{:20s}: {:10s}{}".format(vm, *disk))
+for vm, values in sorted(disk_map.items()):
+    for value in sorted(values):
+        if True:
+            print("{} {:20s} {:3} {:9s} {}".format(*value))
+        else:
+            print("qm move_disk {} {} VMBS-TEST-VMs --delete 1".format(value[3], value[2]))
+
 
 
 sys.exit(0)
