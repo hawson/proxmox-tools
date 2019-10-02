@@ -2,12 +2,15 @@
 '''Move all disks for a given VM.'''
 # pylint: disable=invalid-name
 # pylint: disable=redefined-outer-name
+# pylint: disable=line-too-long
+
 
 import json
 import logging
 import re
 import sys
 import argparse
+from operator import itemgetter
 
 import requests
 
@@ -114,6 +117,50 @@ def get_vm_config(client, BASE, node, vmid):
     return config
 
 
+def display_moves(disk_map):
+    '''Spit out list of move commands'''
+
+    final_list = []
+
+    for _, drives in disk_map.items():
+
+        for drive in drives:
+            # ('pve2', 'piercelab-dev', 120, 'virtio0', 'pve-storage1:120/vm-120-disk-0.qcow2,size=200G')
+
+            logging.debug(drive)
+            if 'cdrom' in drive[4]:
+                logging.debug("Skipping: cannot move CDROM images")
+                continue
+
+            if storage_target in drive[4]:
+                logging.info("Skipping: target (%s) is same as current location (%s)", storage_target, drive[4])
+                continue
+
+            cmd = "qm move_disk {} {:7} {}  --delete 1  \t# {}:{}".format(drive[2], drive[3], storage_target, drive[0], drive[1])
+
+
+            final_list.append((itemgetter(0, 2, 1, 3)(drive), cmd))
+
+    # Finally, print the nicely sorted list
+    for drive in sorted(final_list):
+        print(drive[-1])
+
+
+def display_devices(disk_map):
+    '''pretty-print list mapping of node-vm-storage'''
+    final_list = []
+    for _, drives in disk_map.items():
+        for drive in drives:
+            logging.debug(drive)
+            final_list.append(drive)
+
+    for drive in sorted(final_list, key=itemgetter(0, 2, 1, 3, 4)):
+        print("{} {:20s} {:3} {:9s} {}".format(*drive))
+
+
+
+
+################################################################
 
 # make new session ot the API
 cred = load_cred('api_credentials.json')
@@ -140,37 +187,17 @@ for vm in vms:
         if m:
             logging.info("%d/%s drive: %s:%s", vmid, name, config, value)
 
-            #if value.startswith('none'):
-            #    logging.info(" not attached?")
-            #    continue
-#
-#            if 'cdrom' in value:
-#                logging.info(" skipping cdrom")
-#                continue
-
             if name in disk_map:
                 disk_map[name].append((node, name, vmid, config, value))
             else:
                 disk_map[name] = [(node, name, vmid, config, value)]
 
-for vm, values in sorted(disk_map.items()):
-    for value in sorted(values):
-        if parsed_options.move:
-            logging.debug(value)
-            if 'cdrom' in value[4]:
-                logging.debug("Skipping: cannot move CDROM images")
-                continue
+if parsed_options.move:
+    # pretty-print a list of `qm move_disk' commands
+    display_moves(disk_map)
 
-            if storage_target in value[4]:
-                logging.info("Skipping: target (%s) is same as current location (%s)", storage_target, value[4])
-                continue
-
-            print("qm move_disk {} {} {}  --delete 1  \t# {}:{}".format(value[2], value[3], storage_target, value[0],value[1]))
-
-        else:
-            print("{} {:20s} {:3} {:9s} {}".format(*value))
-
-
+else:
+    display_devices(disk_map)
 
 sys.exit(0)
 # End of line -- MCP
