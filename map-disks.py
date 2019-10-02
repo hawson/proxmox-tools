@@ -7,14 +7,41 @@ import json
 import logging
 import re
 import sys
+import argparse
+
 import requests
 
-LOG_LEVEL = 21
+
+api_filename = 'api_credentials.json'
+storage_target = 'vm-block-storage-VMs'
+
+parser = argparse.ArgumentParser(
+    description='''Print manifest of nodes/vms/storage devices.''')
+
+parser.add_argument('-v', '--verbose', action='count', help="Be verbose, (multiples okay)")
+parser.add_argument('-m', '--move', action='store_true', help="Print `qm move_disk' commands.")
+parser.add_argument('-t', '--target', action='store', help="Print `qm move_disk' commands.")
+parser.add_argument('-f', '--credfile', action='store', help="Use alternate credentials files (default={})".format(api_filename))
+
+try:
+    parsed_options, remaining_args = parser.parse_known_args()
+
+except SystemExit as exc:
+    print('''
+Error parsing arguments.
+''')
+    sys.exit(1)
+
+verbose_value = 0 if parsed_options.verbose is None else parsed_options.verbose
+LOG_LEVEL = max(1, 30 - verbose_value * 10)
 logging.basicConfig(format='%(asctime)-15s [%(levelname)s] %(message)s', level=LOG_LEVEL)
+
+if parsed_options.target is not None:
+    storage_target = parsed_options.target
 
 #######################################################
 
-def load_cred(filename='api_credentials.json'):
+def load_cred(filename=api_filename):
     '''Load creds, so we don't embed them in code'''
     try:
         with open(filename) as jfile:
@@ -113,9 +140,13 @@ for vm in vms:
         if m:
             logging.info("%d/%s drive: %s:%s", vmid, name, config, value)
 
-            if value.startswith('none'):
-                logging.info(" not attached?")
-                continue
+            #if value.startswith('none'):
+            #    logging.info(" not attached?")
+            #    continue
+#
+#            if 'cdrom' in value:
+#                logging.info(" skipping cdrom")
+#                continue
 
             if name in disk_map:
                 disk_map[name].append((node, name, vmid, config, value))
@@ -124,10 +155,20 @@ for vm in vms:
 
 for vm, values in sorted(disk_map.items()):
     for value in sorted(values):
-        if True:
-            print("{} {:20s} {:3} {:9s} {}".format(*value))
+        if parsed_options.move:
+            logging.debug(value)
+            if 'cdrom' in value[4]:
+                logging.debug("Skipping: cannot move CDROM images")
+                continue
+
+            if storage_target in value[4]:
+                logging.info("Skipping: target (%s) is same as current location (%s)", storage_target, value[4])
+                continue
+
+            print("qm move_disk {} {} {}  --delete 1  \t# {}:{}".format(value[2], value[3], storage_target, value[0],value[1]))
+
         else:
-            print("qm move_disk {} {} VMBS-TEST-VMs --delete 1".format(value[3], value[2]))
+            print("{} {:20s} {:3} {:9s} {}".format(*value))
 
 
 
