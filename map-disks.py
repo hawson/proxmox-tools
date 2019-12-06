@@ -37,7 +37,7 @@ Error parsing arguments.
 
 verbose_value = 0 if parsed_options.verbose is None else parsed_options.verbose
 LOG_LEVEL = max(1, 30 - verbose_value * 10)
-logging.basicConfig(format='%(asctime)-15s [%(levelname)s] %(message)s', level=LOG_LEVEL)
+logging.basicConfig(format='%(asctime)-11s %(levelname)-4.4s %(filename)s:%(funcName)s:%(lineno)-4d %(message)s', level=LOG_LEVEL)
 
 if parsed_options.target is not None:
     storage_target = parsed_options.target
