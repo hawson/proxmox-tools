@@ -111,7 +111,7 @@ def get_vms(client, BASE):
 def get_vm_config(client, BASE, vm):
     '''Return configuration of select VM from selected node.'''
 
-    config = json.loads(client.get(BASE+'/nodes/{}/qemu/{}/config'.format(node, vmid)).text)['data']
+    config = json.loads(client.get(BASE+'/nodes/{}/{}/{}/config'.format(vm['node'], vm['type'], vm['vmid'], )).text)['data']
 
     logging.debug(config)
     return config
