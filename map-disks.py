@@ -108,7 +108,7 @@ def get_vms(client, BASE):
     return vms
 
 
-def get_vm_config(client, BASE, node, vmid):
+def get_vm_config(client, BASE, vm):
     '''Return configuration of select VM from selected node.'''
 
     config = json.loads(client.get(BASE+'/nodes/{}/qemu/{}/config'.format(node, vmid)).text)['data']
@@ -182,7 +182,7 @@ for vm in vms:
     name = vm['name']
     vmid = vm['vmid']
 
-    for config, value in get_vm_config(client, URLBASE, node, vmid).items():
+    for config, value in get_vm_config(client, URLBASE, vm).items():
         m = re.match(r'(scsi|virtio|ide|sata|unused)\d+', config)
         if m:
             logging.info("%d/%s drive: %s:%s", vmid, name, config, value)
