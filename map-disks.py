@@ -136,7 +136,10 @@ def display_moves(disk_map):
                 logging.info("Skipping: target (%s) is same as current location (%s)", storage_target, drive[4])
                 continue
 
-            cmd = "qm move_disk {} {:7} {}  --delete 1  \t# {}:{}".format(drive[2], drive[3], storage_target, drive[0], drive[1])
+            cmd = "qm move_disk {} {:7} {}  --delete 1".format(drive[2], drive[3], storage_target)
+            comment = "# {}:{}".format(drive[0], drive[1])
+
+            cmd = cmd.ljust(55) + comment
 
 
             final_list.append((itemgetter(0, 2, 1, 3)(drive), cmd))
