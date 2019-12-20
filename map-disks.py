@@ -16,13 +16,13 @@ import requests
 
 
 api_filename = 'api_credentials.json'
-storage_target = 'vm-block-storage-VMs'
+storage_target = None
 
 parser = argparse.ArgumentParser(
     description='''Print manifest of nodes/vms/storage devices.''')
 
 parser.add_argument('-v', '--verbose', action='count', help="Be verbose, (multiples okay)")
-parser.add_argument('-m', '--move', action='store_true', help="Print `qm move_disk' commands.")
+parser.add_argument('-m', '--move', action='store_true', help="Print `qm move_disk' commands. (Also requires --target option)")
 parser.add_argument('-t', '--target', action='store', help="Print `qm move_disk' commands.")
 parser.add_argument('-f', '--credfile', action='store', help="Use alternate credentials files (default={})".format(api_filename))
 
@@ -41,6 +41,11 @@ logging.basicConfig(format='%(asctime)-11s %(levelname)-4.4s %(filename)s:%(func
 
 if parsed_options.target is not None:
     storage_target = parsed_options.target
+
+
+if parsed_options.move and parsed_options.target is None:
+    print("""You must specifiy --target and --move together.""")
+    sys.exit(1)
 
 #######################################################
 
