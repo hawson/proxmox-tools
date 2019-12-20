@@ -26,6 +26,9 @@ parser.add_argument('-m', '--move', action='store_true', help="Print `qm move_di
 parser.add_argument('-t', '--target', action='store', help="Print `qm move_disk' commands.")
 parser.add_argument('-f', '--credfile', action='store', help="Use alternate credentials files (default={})".format(api_filename))
 
+parser.add_argument('Filter', nargs='*', action='store', help="Regex to filter results.  Applied to *entire* output line.")
+
+
 try:
     parsed_options, remaining_args = parser.parse_known_args()
 
@@ -122,7 +125,7 @@ def get_vm_config(client, BASE, vm):
     return config
 
 
-def display_moves(disk_map):
+def display_moves(disk_map, Filter):
     '''Spit out list of move commands'''
 
     final_list = []
@@ -151,10 +154,11 @@ def display_moves(disk_map):
 
     # Finally, print the nicely sorted list
     for drive in sorted(final_list):
-        print(drive[-1])
+        if re.search(Filter, drive[-1]):
+            print(drive[-1])
 
 
-def display_devices(disk_map):
+def display_devices(disk_map, Filter):
     '''pretty-print list mapping of node-vm-storage'''
     final_list = []
     for _, drives in disk_map.items():
@@ -163,9 +167,13 @@ def display_devices(disk_map):
             final_list.append(drive)
 
     for drive in sorted(final_list, key=itemgetter(0, 2, 1, 3, 4)):
-        print("{} {:20s} {:3} {:9s} {}".format(*drive))
+        string = "{} {:20s} {:3} {:9s} {}".format(*drive)
+        if re.search(Filter, string):
+            print(string)
 
 
+def make_filter(Filter):
+    return r'|'.join(Filter)
 
 
 ################################################################
@@ -200,12 +208,17 @@ for vm in vms:
             else:
                 disk_map[name] = [(node, name, vmid, config, value)]
 
+if parsed_options.Filter:
+    Filter = make_filter(parsed_options.Filter)
+else:
+    Filter = r'.+'
+
 if parsed_options.move:
     # pretty-print a list of `qm move_disk' commands
-    display_moves(disk_map)
+    display_moves(disk_map, Filter)
 
 else:
-    display_devices(disk_map)
+    display_devices(disk_map, Filter)
 
 sys.exit(0)
 # End of line -- MCP
