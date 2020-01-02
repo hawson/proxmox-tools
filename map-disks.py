@@ -25,6 +25,7 @@ parser.add_argument('-v', '--verbose', action='count', help="Be verbose, (multip
 parser.add_argument('-m', '--move', action='store_true', help="Print `qm move_disk' commands. (Also requires --target option)")
 parser.add_argument('-t', '--target', action='store', help="Print `qm move_disk' commands.")
 parser.add_argument('-f', '--credfile', action='store', help="Use alternate credentials files (default={})".format(api_filename))
+parser.add_argument('-n', '--negate', action='count', help="Negate *ALL* filter rules, if present.")
 
 parser.add_argument('Filter', nargs='*', action='store', help="Regex to filter results.  Applied to *entire* output line.")
 
@@ -154,7 +155,11 @@ def display_moves(disk_map, Filter):
 
     # Finally, print the nicely sorted list
     for drive in sorted(final_list):
-        if re.search(Filter, drive[-1]):
+        match = re.search(Filter, drive[-1])
+        logging.debug("Matched filter: %s", match)
+        if match and not parsed_options.negate:
+            print(drive[-1])
+        elif not match and parsed_options.negate:
             print(drive[-1])
 
 
@@ -168,7 +173,11 @@ def display_devices(disk_map, Filter):
 
     for drive in sorted(final_list, key=itemgetter(0, 2, 1, 3, 4)):
         string = "{} {:20s} {:3} {:9s} {}".format(*drive)
-        if re.search(Filter, string):
+        match = re.search(Filter, string)
+        logging.debug("Matched: %s", match)
+        if match and not parsed_options.negate:
+            print(string)
+        elif not match and parsed_options.negate:
             print(string)
 
 
